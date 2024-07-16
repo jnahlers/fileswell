@@ -25,7 +25,7 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     a line profile perpendicular to the edge, and then averages these line profiles.
 
     Therefore, you need to supply a region-of-interest (ROI) that contains the edge
-    you want to extract the line profile from, and some of the two regions sorrounding
+    you want to extract the line profile from, and some of the two regions surrounding
     that edge, but no other features.
 
     If the image already contains nothing more than the edge and the two regions, you
