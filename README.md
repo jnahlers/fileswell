@@ -6,7 +6,7 @@
   Fileswell [<em>faɪlz·wel</em>]
 </h1>
 
-<p align="center"><strong>Fileswell is a tool for extracting line profiles. It is therefore a profiler. A pro filer. Something that files really well. 
+<p align="center"><strong>Fileswell is a tool for extracting line profiles. It is therefore a profiler. A pro filer. 
 </strong></p>
 
 ## Usage
