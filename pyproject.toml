@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fileswell"
+version = "0.0.1"
+authors = [
+    { name = "Jannis Ahlers", email = "jannis.ahlers@monash.edu" }
+]
+description = "A tool to extract line profiles of edges"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "numpy",
+    "scipy",
+    "uncertainties",
+    "scikit-fda",
+    "scikit-image",
+    "shapely",
+    "roifile",
+    "matplotlib"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/jnahlers/spylia"
+"Bugtracker" = "https://github.com/jnahlers/spylia/issues"
