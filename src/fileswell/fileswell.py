@@ -247,5 +247,11 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
         ax[1].imshow(np.ma.masked_where(mask_low == 0, mask_low), cmap="cool",
                      alpha=0.1)
 
-    return line_profile, intensity_high, intensity_low
+    results = {
+        "line_profile": line_profile,
+        "intensity_high": intensity_high,
+        "intensity_low": intensity_low
+    }
+
+    return results
 
