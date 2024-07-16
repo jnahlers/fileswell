@@ -40,6 +40,7 @@ rois = load_imagej_rois(Path("path/to/rois.zip"))
 # Select the roi you want to extract the line profile from
 roi = rois[0]
 
+# Load the image (numpy array of dimensions (height, width))
 results = extract_line_profile(im, roi=roi)
 
 # The results are a dictionary with the following:
@@ -47,6 +48,20 @@ results = extract_line_profile(im, roi=roi)
 # - 'intensity_high': the intensity value in the higher intensity region
 # - 'intensity_low': the intensity value in the lower intensity region
 ``` 
+
+If you don't have regions of interest (ROIs) saved in ImageJ format, you can also 
+manually create a ROI object from a set of coordinates:
+
+```python
+import numpy as np
+
+from fileswell import ROI
+
+# Coordinates in the form [[y1, x1], [y2, x2], ...]
+coordinates = np.array([[0, 0], [0, 10], [10, 10], [10, 0]])
+
+roi = ROI(coordinates)
+```
 
 ## API
 
@@ -122,5 +137,19 @@ list of ROI
     A list of ROI objects
 ```
 
+#### ROI
 
+```
+A region-of-interest (ROI) defined by a set of coordinates.
 
+Constructor parameters
+----------
+coords : ndarray
+    An Nx2 array of coordinates defining the ROI, with the first column
+    being the y-coordinates and the second column being the x-coordinates.
+
+Returns
+-------
+ROI
+    A ROI object.
+```
