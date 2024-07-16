@@ -1,6 +1,6 @@
 <h1 align="center">
   <a href="https://github.com/jnahlers/fileswell">
-    <img src="https://github.com/jnahlers/fileswell/master/resources/icon_256x256.png" alt="Fileswell"/>
+    <img src="https://github.com/jnahlers/fileswell/blob/main/resources/icon_256x256.png" alt="Fileswell"/>
   </a>
   <br/>
   Fileswell [<em>faɪlz·wel</em>]
