@@ -7,7 +7,7 @@
 </h1>
 
 <p align="center"><strong>Fileswell is a tool for extracting line profiles. It is therefore a profiler. A pro filer. Something that files really well. 
-</strong>.</p>
+</strong></p>
 
 ## Usage
 
