@@ -35,7 +35,7 @@ from pathlib import Path
 
 from fileswell import load_imagej_rois, extract_line_profile
 
-rois = load_imagej_rois(Path("path/to/rois.zip"))
+rois = load_imagej_rois(Path("path/to/rois.zip"))  # or .roi file
 
 # Select the roi you want to extract the line profile from
 roi = rois[0]
