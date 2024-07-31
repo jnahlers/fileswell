@@ -31,6 +31,8 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     If the image already contains nothing more than the edge and the two regions, you
     don't need to supply a ROI.
 
+    See also: https://stackoverflow.com/a/52020098
+
     Parameters
     ----------
     im : ndarray
@@ -75,6 +77,7 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     # Run a median filter
     im_median = ndi.median_filter(im, size=10)
 
+    # Get the mask in the coordinates of the image cropped to the ROI
     mask = roi.local_mask
 
     # Get the max and min values within the median filtered image
