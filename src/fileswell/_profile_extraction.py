@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.ndimage as ndi
+from scipy.interpolate import UnivariateSpline
 from uncertainties import ufloat, unumpy as unp
 from skfda.preprocessing.registration import LeastSquaresShiftRegistration
 from skfda import FDataGrid
@@ -7,8 +8,60 @@ import shapely.geometry
 import skimage.filters as skfilt
 import skimage.measure as skmeas
 import skimage.feature as skfeat
+import skimage.morphology as skmorph
 
 from fileswell._roi import ROI
+
+
+def order_line_points(x, y):
+    """Order the coordinates of a 2D line skeleton.
+
+    This function takes a set of coordinates that represent a line skeleton and
+    orders them in such a way that they form a continuous path. The function
+    assumes that the line skeleton does not branch.
+
+    Implements https://stackoverflow.com/a/37744549.
+
+    Parameters
+    ----------
+    x : array
+        The x-coordinates of the line skeleton.
+    y : array
+        The y-coordinates of the line skeleton.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the ordered x and y coordinates of the line skeleton.
+    """
+    points = np.c_[x, y]
+    from sklearn.neighbors import NearestNeighbors
+
+    clf = NearestNeighbors(n_neighbors=2).fit(points)
+    G = clf.kneighbors_graph()
+
+    import networkx as nx
+
+    T = nx.from_scipy_sparse_array(G)
+
+    paths = [list(nx.dfs_preorder_nodes(G=T, source=i)) for i in range(len(points))]
+
+    mindist = np.inf
+    minidx = 0
+
+    for i in range(len(points)):
+        p = paths[i]  # order of nodes
+        ordered = points[p]  # ordered nodes
+        # find cost of that order by the sum of euclidean distances between points (i) and (i+1)
+        cost = (((ordered[:-1] - ordered[1:]) ** 2).sum(1)).sum()
+        if cost < mindist:
+            mindist = cost
+            minidx = i
+
+    opt_order = paths[minidx]
+
+    return points[opt_order][:, 0], points[opt_order][:, 1]
+
 
 
 def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, ax=None):
@@ -32,6 +85,7 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     don't need to supply a ROI.
 
     See also: https://stackoverflow.com/a/52020098
+              https://stackoverflow.com/q/37742358
 
     Parameters
     ----------
@@ -75,7 +129,7 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     im = im[roi.bounding_box_slice]
 
     # Run a median filter
-    im_median = ndi.median_filter(im, size=10)
+    im_median = ndi.median_filter(im, size=2*edgewidth)
 
     # Get the mask in the coordinates of the image cropped to the ROI
     mask = roi.local_mask
@@ -94,6 +148,10 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     # Threshold using Otsu's method
     thresh_value = skfilt.threshold_otsu(im_masked)
     im_thresh = im_masked > thresh_value
+
+    # Remove small holes that may have been caused by noise
+    im_thresh = skmorph.remove_small_holes(im_thresh)
+    im_thresh = skmorph.remove_small_objects(im_thresh)
 
     # Ensure that the thresholded image consists of two path-connected regions
     im_label = np.ma.masked_where(~mask, skmeas.label(im_thresh))
@@ -134,26 +192,40 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     mask_low = np.logical_not(ndi.binary_dilation(im_thresh, iterations=2 * edgewidth)) & mask
     intensity_low = ufloat(np.mean(im[mask_low]), np.std(im[mask_low]))
 
-    # Find the gradients in x and y direction of the filtered image
-    grad_x = skfilt.scharr_v(im_median)
-    grad_y = skfilt.scharr_h(im_median)
+    # In order to take profiles across the edge, we need to find out what the normal
+    # vector is at each point on the edge. To do this we will fit a spline to the edge
+    # and then take the derivative of the spline at each point.
 
-    # The gradients can be a bit noisy, but we assume the edge is not bending quickly,
-    # and so we smooth the gradients with a filter.
-    grad_x = ndi.uniform_filter(grad_x, size=edgewidth)
-    grad_y = ndi.uniform_filter(grad_y, size=edgewidth)
+    # We start by getting the points on the edge. This gives us a line skeleton.
+    y, x = edges.nonzero()
 
-    # Find all points on the phase edge
-    y, x = np.where(edges)
+    # nonzero() returns the points in returned in row-major, C-style order.
+    # We need to sort the points by the distance along the edge in order to fit a
+    # spline. This is non-trivial, as the edge may swerve and swirl and double back '
+    # on itself.
+    # See https://stackoverflow.com/q/37742358 for a discussion of how to do this.
+    x, y = order_line_points(x, y)
 
-    # Find the gradient at each point on the phase edge
-    grad_x = grad_x[y, x]
-    grad_y = grad_y[y, x]
+    # Cumulative distance along the edge
+    dist = np.cumsum(np.sqrt(np.diff(x) ** 2 + np.diff(y) ** 2))
+
+    # Remove the last coord
+    x = x[:-1]
+    y = y[:-1]
+
+    # Build a list of spline functions, one for each coordinate
+    splines = [UnivariateSpline(dist, coord, k=3, s=None) for coord in [x, y]]
+
+    # Find the normal vector at each point on the edge
+    dx = splines[0].derivative()(dist)
+    dy = splines[1].derivative()(dist)
+    grad_x = -dy
+    grad_y = dx
 
     # Normalize the gradients
     grad_norm = np.sqrt(grad_x ** 2 + grad_y ** 2)
-    grad_x = grad_x / grad_norm
-    grad_y = grad_y / grad_norm
+    grad_x = -grad_x / grad_norm
+    grad_y = -grad_y / grad_norm
 
     # For each edge point, draw a line of length line_length in the direction of the
     # normal vector. Because we want the line to go from low to high, we will reverse
@@ -222,15 +294,26 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     fd_registered = shift_registration.fit_transform(fd)
     line_profiles_aligned = np.squeeze(fd_registered.data_matrix)
 
-    # Plot the aligned line profiles
-    if ax is not None:
-        for i in range(len(line_profiles_aligned)):
-            ax[0].plot(line_profiles_aligned[i], alpha=0.1)
-
     # Average the aligned line profiles, ignoring nan values
     line_profile_avg = np.nanmean(line_profiles_aligned, axis=0)
     line_profile_std = np.nanstd(line_profiles_aligned, axis=0)
     line_profile = unp.uarray(line_profile_avg, line_profile_std)
+
+    # Plot the aligned line profiles
+    if ax is not None:
+        for i in range(len(line_profiles_aligned)):
+            ax[0].plot(line_profiles_aligned[i], alpha=0.1, color="gray")
+        # Plot the mean and std line profile
+        ax[0].plot(line_profile_avg, "r-")
+        y_err_low = line_profile_avg - line_profile_std
+        y_err_high = line_profile_avg + line_profile_std
+        ax[0].fill_between(np.arange(len(line_profile_avg)), y_err_low, y_err_high,
+                           color="r", alpha=0.3)
+        # Plot horizontal lines at the two intensity levels
+        ax[0].axhline(intensity_high.nominal_value, color="b", linestyle="-", alpha=0.5)
+        ax[0].axhline(intensity_low.nominal_value, color="b", linestyle="-", alpha=0.5)
+        # Set the x limits
+        ax[0].set_xlim(0, len(line_profile_avg)-1)
 
     # Draw an image of the line profiles if ax is provided
     if ax is not None:
