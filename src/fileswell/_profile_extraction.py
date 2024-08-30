@@ -342,6 +342,11 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     shift_registration = LeastSquaresShiftRegistration()
     fd_registered = shift_registration.fit_transform(fd)
     line_profiles_aligned = np.squeeze(fd_registered.data_matrix)
+    
+    # Test which way the line profiles should be flipped
+    flat_length = linelength - edgewidth
+    if np.mean(line_profiles_aligned[:, 0:flat_length]) > np.mean(line_profiles_aligned[:, -flat_length:-1]):
+        line_profiles_aligned = np.flip(line_profiles_aligned, axis=1)
 
     # Average the aligned line profiles, ignoring nan values
     line_profile_avg = np.nanmean(line_profiles_aligned, axis=0)
@@ -357,7 +362,7 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
         y_err_low = line_profile_avg - line_profile_std
         y_err_high = line_profile_avg + line_profile_std
         ax[0].fill_between(np.arange(len(line_profile_avg)), y_err_low, y_err_high,
-                           color="r", alpha=0.3)
+                           color="r", alpha=0.7)
         # Plot horizontal lines at the two intensity levels
         ax[0].axhline(intensity_high.nominal_value, color="b", linestyle="-", alpha=0.5)
         ax[0].axhline(intensity_low.nominal_value, color="b", linestyle="-", alpha=0.5)
