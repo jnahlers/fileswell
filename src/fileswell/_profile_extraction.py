@@ -44,7 +44,12 @@ def order_line_points(x, y):
 
     T = nx.from_scipy_sparse_array(G)
 
-    paths = [list(nx.dfs_preorder_nodes(G=T, source=i)) for i in range(len(points))]
+    # Draw the graph with each node at the position of the corresponding point
+    # nx.draw(T, pos=points)
+    # plt.show()
+
+    # paths = [list(nx.all_pairs_shortest_path(T)) for i in range(len(points))]
+    paths = [list(nx.dfs_postorder_nodes(G=T, source=i)) for i in range(len(points))]
 
     mindist = np.inf
     minidx = 0
@@ -56,10 +61,54 @@ def order_line_points(x, y):
         cost = (((ordered[:-1] - ordered[1:]) ** 2).sum(1)).sum()
         if cost < mindist:
             mindist = cost
+
             minidx = i
 
     opt_order = paths[minidx]
+    
+    return points[opt_order][:, 0], points[opt_order][:, 1]
 
+
+def order_line_points2(x, y):
+    """Order the coordinates of a 2D line skeleton.
+
+    This function takes a set of coordinates that represent a line skeleton and
+    orders them in such a way that they form a continuous path. The function
+    assumes that the line skeleton does not branch.
+
+
+    Parameters
+    ----------
+    x : array
+        The x-coordinates of the line skeleton.
+    y : array
+        The y-coordinates of the line skeleton.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the ordered x and y coordinates of the line skeleton.
+    """
+    points = np.c_[x, y]
+    from sklearn.neighbors import NearestNeighbors
+
+    clf = NearestNeighbors(n_neighbors=3).fit(points)
+    G = clf.kneighbors_graph()
+
+    import networkx as nx
+
+    T = nx.from_scipy_sparse_array(G)
+    
+    # Set the weights of the edges to be the euclidean distance between the points.
+    for i, j in T.edges:
+        T.edges[i, j]["weight"] = np.linalg.norm(points[i] - points[j])
+        
+    # Find the shortest path that visits all nodes
+    path = nx.approximation.traveling_salesman_problem(T, cycle=False, weight="weight")
+
+    # Get the ordered points
+    opt_order = list(path)
+    
     return points[opt_order][:, 0], points[opt_order][:, 1]
 
 
@@ -201,10 +250,10 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
 
     # nonzero() returns the points in returned in row-major, C-style order.
     # We need to sort the points by the distance along the edge in order to fit a
-    # spline. This is non-trivial, as the edge may swerve and swirl and double back '
+    # spline. This is non-trivial, as the edge may swerve and swirl and double back
     # on itself.
     # See https://stackoverflow.com/q/37742358 for a discussion of how to do this.
-    x, y = order_line_points(x, y)
+    x, y = order_line_points2(x, y)
 
     # Cumulative distance along the edge
     dist = np.cumsum(np.sqrt(np.diff(x) ** 2 + np.diff(y) ** 2))
@@ -224,8 +273,8 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
 
     # Normalize the gradients
     grad_norm = np.sqrt(grad_x ** 2 + grad_y ** 2)
-    grad_x = -grad_x / grad_norm
-    grad_y = -grad_y / grad_norm
+    grad_x = grad_x / grad_norm
+    grad_y = grad_y / grad_norm
 
     # For each edge point, draw a line of length line_length in the direction of the
     # normal vector. Because we want the line to go from low to high, we will reverse
