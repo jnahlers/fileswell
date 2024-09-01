@@ -34,6 +34,8 @@ class ROI(object):
 
         self.local_coords = coords - np.array([self.top, self.left])
 
+        self.imagejroi = None
+
     @property
     def bounding_box_slice(self):
         return np.s_[self.top:self.bottom, self.left:self.right]
@@ -56,7 +58,9 @@ class ROI(object):
     def from_imagej_roi(cls, imagej_roi: ImagejRoi):
         """Create a ROI from an ImagejRoi object."""
         coords = np.roll(imagej_roi.coordinates(), 1, axis=1)
-        return cls(coords)
+        roi = cls(coords)
+        roi.imagejroi = imagej_roi
+        return roi
 
 
 def load_imagej_rois(path: str | os.PathLike) -> list[ROI]:
