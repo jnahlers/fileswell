@@ -9,6 +9,8 @@ import skimage.filters as skfilt
 import skimage.measure as skmeas
 import skimage.feature as skfeat
 import skimage.morphology as skmorph
+import networkx as nx
+from sklearn.neighbors import NearestNeighbors
 
 from fileswell._roi import ROI
 
@@ -35,12 +37,9 @@ def order_line_points(x, y):
         A tuple containing the ordered x and y coordinates of the line skeleton.
     """
     points = np.c_[x, y]
-    from sklearn.neighbors import NearestNeighbors
 
     clf = NearestNeighbors(n_neighbors=2).fit(points)
     G = clf.kneighbors_graph()
-
-    import networkx as nx
 
     T = nx.from_scipy_sparse_array(G)
 
@@ -90,14 +89,22 @@ def order_line_points2(x, y):
         A tuple containing the ordered x and y coordinates of the line skeleton.
     """
     points = np.c_[x, y]
-    from sklearn.neighbors import NearestNeighbors
 
-    clf = NearestNeighbors(n_neighbors=3).fit(points)
-    G = clf.kneighbors_graph()
 
-    import networkx as nx
+    n_neighbors_max = 5
+    n_neighbors = 2
+    n_subgraphs = 0
 
-    T = nx.from_scipy_sparse_array(G)
+    while n_subgraphs != 1:
+        n_neighbors += 1
+
+        if n_neighbors > n_neighbors_max:
+            raise ValueError("Could not find a single connected subgraph.")
+
+        clf = NearestNeighbors(n_neighbors=n_neighbors).fit(points)
+        G = clf.kneighbors_graph()
+        T = nx.from_scipy_sparse_array(G)
+        n_subgraphs = nx.number_connected_components(T)
     
     # Set the weights of the edges to be the euclidean distance between the points.
     for i, j in T.edges:
