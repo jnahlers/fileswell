@@ -1,3 +1,5 @@
+import os
+
 from pathlib import Path
 from zipfile import ZipFile
 import tempfile
@@ -57,7 +59,7 @@ class ROI(object):
         return cls(coords)
 
 
-def load_imagej_rois(path: Path):
+def load_imagej_rois(path: str | os.PathLike) -> list[ROI]:
     """Load ImageJ ROIs from a .roi or .zip (containing .roi files) file.
 
     Parameters
@@ -70,6 +72,7 @@ def load_imagej_rois(path: Path):
     list of ROI
         A list of ROI objects.
     """
+    path = Path(path)
     rois = []
     if path.name.endswith('.zip'):
         with ZipFile(path, "r") as zf:
