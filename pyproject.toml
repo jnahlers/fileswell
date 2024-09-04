@@ -28,7 +28,8 @@ dependencies = [
     "scikit-image",
     "shapely",
     "roifile",
-    "matplotlib"
+    "matplotlib",
+    "natsort",
 ]
 
 [project.urls]

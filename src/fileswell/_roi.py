@@ -7,6 +7,7 @@ import tempfile
 import numpy as np
 import skimage.draw as skdraw
 from roifile import ImagejRoi
+from natsort import natsorted
 
 
 class ROI(object):
@@ -83,7 +84,7 @@ def load_imagej_rois(path: str | os.PathLike) -> list[ROI]:
             with tempfile.TemporaryDirectory() as tempdirname:
                 tempdir = Path(tempdirname)
                 zf.extractall(tempdir)
-                for file in tempdir.iterdir():
+                for file in natsorted(tempdir.iterdir()):
                     if file.name.endswith('.roi'):
                         rois.append(ROI.from_imagej_roi(ImagejRoi.fromfile(file)))
     elif path.name.endswith('.roi'):
