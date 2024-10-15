@@ -73,9 +73,23 @@ def order_line_points2(x, y):
     """Order the coordinates of a 2D line skeleton.
 
     This function takes a set of coordinates that represent a line skeleton and
-    orders them in such a way that they form a continuous path. The function
-    assumes that the line skeleton does not branch.
+    attempts to order them in such a way that they form a continuous path. The
+    function assumes that the line skeleton does not branch.
 
+    The function starts by finding each point's nearest neighbours, in order to
+    get candidates for the points to connect to the current point. Although all
+    points (except the first and last points in the line) will ultimately be connected
+    to two other points, the two nearest neighbours are not necessarily the correct
+    points to connect to.
+
+    As long as the points are not too noisy, we assume that the three nearest neighbours
+    will contain the two correct points to connect to. We then calculate the shortest
+    path that visits all nodes, using the three nearest neighbours as the graph.
+    Increasing the number of nearest neighbours to consider will increase the likelihood
+    of finding the correct path, but will also increase the computational cost of
+    solving the travelling salesman problem.
+
+    Inspired by https://stackoverflow.com/a/37744549.
 
     Parameters
     ----------
