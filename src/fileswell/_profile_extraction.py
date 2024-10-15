@@ -9,8 +9,6 @@ import skimage.filters as skfilt
 import skimage.measure as skmeas
 import skimage.feature as skfeat
 import skimage.morphology as skmorph
-import networkx as nx
-from sklearn.neighbors import NearestNeighbors
 
 from fileswell._roi import ROI
 
@@ -19,10 +17,23 @@ def order_line_points(x, y):
     """Order the coordinates of a 2D line skeleton.
 
     This function takes a set of coordinates that represent a line skeleton and
-    orders them in such a way that they form a continuous path. The function
-    assumes that the line skeleton does not branch.
+    attempts to order them in such a way that they form a continuous path. The
+    function assumes that the line skeleton does not branch.
 
-    Implements https://stackoverflow.com/a/37744549.
+    The function starts by finding each point's nearest neighbours, in order to
+    get candidates for the points to connect to the current point. Although all
+    points (except the first and last points in the line) will ultimately be connected
+    to two other points, the two nearest neighbours are not necessarily the correct
+    points to connect to.
+
+    As long as the points are not too noisy, we assume that the three nearest neighbours
+    will contain the two correct points to connect to. We then calculate the shortest
+    path that visits all nodes, using the three nearest neighbours as the graph.
+    Increasing the number of nearest neighbours to consider will increase the likelihood
+    of finding the correct path, but will also increase the computational cost of
+    solving the travelling salesman problem.
+
+    Inspired by https://stackoverflow.com/a/37744549.
 
     Parameters
     ----------
@@ -37,74 +48,14 @@ def order_line_points(x, y):
         A tuple containing the ordered x and y coordinates of the line skeleton.
     """
     points = np.c_[x, y]
+    from sklearn.neighbors import NearestNeighbors
 
-    clf = NearestNeighbors(n_neighbors=2).fit(points)
+    clf = NearestNeighbors(n_neighbors=3).fit(points)
     G = clf.kneighbors_graph()
 
+    import networkx as nx
+
     T = nx.from_scipy_sparse_array(G)
-
-    # Draw the graph with each node at the position of the corresponding point
-    # nx.draw(T, pos=points)
-    # plt.show()
-
-    # paths = [list(nx.all_pairs_shortest_path(T)) for i in range(len(points))]
-    paths = [list(nx.dfs_postorder_nodes(G=T, source=i)) for i in range(len(points))]
-
-    mindist = np.inf
-    minidx = 0
-
-    for i in range(len(points)):
-        p = paths[i]  # order of nodes
-        ordered = points[p]  # ordered nodes
-        # find cost of that order by the sum of euclidean distances between points (i) and (i+1)
-        cost = (((ordered[:-1] - ordered[1:]) ** 2).sum(1)).sum()
-        if cost < mindist:
-            mindist = cost
-
-            minidx = i
-
-    opt_order = paths[minidx]
-    
-    return points[opt_order][:, 0], points[opt_order][:, 1]
-
-
-def order_line_points2(x, y):
-    """Order the coordinates of a 2D line skeleton.
-
-    This function takes a set of coordinates that represent a line skeleton and
-    orders them in such a way that they form a continuous path. The function
-    assumes that the line skeleton does not branch.
-
-
-    Parameters
-    ----------
-    x : array
-        The x-coordinates of the line skeleton.
-    y : array
-        The y-coordinates of the line skeleton.
-
-    Returns
-    -------
-    tuple
-        A tuple containing the ordered x and y coordinates of the line skeleton.
-    """
-    points = np.c_[x, y]
-
-
-    n_neighbors_max = 5
-    n_neighbors = 2
-    n_subgraphs = 0
-
-    while n_subgraphs != 1:
-        n_neighbors += 1
-
-        if n_neighbors > n_neighbors_max:
-            raise ValueError("Could not find a single connected subgraph.")
-
-        clf = NearestNeighbors(n_neighbors=n_neighbors).fit(points)
-        G = clf.kneighbors_graph()
-        T = nx.from_scipy_sparse_array(G)
-        n_subgraphs = nx.number_connected_components(T)
     
     # Set the weights of the edges to be the euclidean distance between the points.
     for i, j in T.edges:
@@ -260,7 +211,7 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     # spline. This is non-trivial, as the edge may swerve and swirl and double back
     # on itself.
     # See https://stackoverflow.com/q/37742358 for a discussion of how to do this.
-    x, y = order_line_points2(x, y)
+    x, y = order_line_points(x, y)
 
     # Cumulative distance along the edge
     dist = np.cumsum(np.sqrt(np.diff(x) ** 2 + np.diff(y) ** 2))
