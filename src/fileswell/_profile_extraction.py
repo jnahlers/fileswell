@@ -17,62 +17,6 @@ def order_line_points(x, y):
     """Order the coordinates of a 2D line skeleton.
 
     This function takes a set of coordinates that represent a line skeleton and
-    orders them in such a way that they form a continuous path. The function
-    assumes that the line skeleton does not branch.
-
-    Implements https://stackoverflow.com/a/37744549.
-
-    Parameters
-    ----------
-    x : array
-        The x-coordinates of the line skeleton.
-    y : array
-        The y-coordinates of the line skeleton.
-
-    Returns
-    -------
-    tuple
-        A tuple containing the ordered x and y coordinates of the line skeleton.
-    """
-    points = np.c_[x, y]
-    from sklearn.neighbors import NearestNeighbors
-
-    clf = NearestNeighbors(n_neighbors=2).fit(points)
-    G = clf.kneighbors_graph()
-
-    import networkx as nx
-
-    T = nx.from_scipy_sparse_array(G)
-
-    # Draw the graph with each node at the position of the corresponding point
-    # nx.draw(T, pos=points)
-    # plt.show()
-
-    # paths = [list(nx.all_pairs_shortest_path(T)) for i in range(len(points))]
-    paths = [list(nx.dfs_postorder_nodes(G=T, source=i)) for i in range(len(points))]
-
-    mindist = np.inf
-    minidx = 0
-
-    for i in range(len(points)):
-        p = paths[i]  # order of nodes
-        ordered = points[p]  # ordered nodes
-        # find cost of that order by the sum of euclidean distances between points (i) and (i+1)
-        cost = (((ordered[:-1] - ordered[1:]) ** 2).sum(1)).sum()
-        if cost < mindist:
-            mindist = cost
-
-            minidx = i
-
-    opt_order = paths[minidx]
-    
-    return points[opt_order][:, 0], points[opt_order][:, 1]
-
-
-def order_line_points2(x, y):
-    """Order the coordinates of a 2D line skeleton.
-
-    This function takes a set of coordinates that represent a line skeleton and
     attempts to order them in such a way that they form a continuous path. The
     function assumes that the line skeleton does not branch.
 
@@ -267,7 +211,7 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     # spline. This is non-trivial, as the edge may swerve and swirl and double back
     # on itself.
     # See https://stackoverflow.com/q/37742358 for a discussion of how to do this.
-    x, y = order_line_points2(x, y)
+    x, y = order_line_points(x, y)
 
     # Cumulative distance along the edge
     dist = np.cumsum(np.sqrt(np.diff(x) ** 2 + np.diff(y) ** 2))
