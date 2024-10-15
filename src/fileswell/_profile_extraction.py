@@ -56,22 +56,26 @@ def order_line_points(x, y):
     import networkx as nx
 
     T = nx.from_scipy_sparse_array(G)
-    
+
     # Set the weights of the edges to be the euclidean distance between the points.
     for i, j in T.edges:
         T.edges[i, j]["weight"] = np.linalg.norm(points[i] - points[j])
-        
+
     # Find the shortest path that visits all nodes
     path = nx.approximation.traveling_salesman_problem(T, cycle=False, weight="weight")
 
     # Get the ordered points
     opt_order = list(path)
-    
+
     return points[opt_order][:, 0], points[opt_order][:, 1]
 
 
-
-def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, ax=None):
+def extract_line_profile(im,
+                         edgewidth=5,
+                         linelength=10,
+                         linewidth=3,
+                         roi=None,
+                         ax=None):
     """Extract a line profile along an edge in an image.
 
     This function extracts an averaged line profile along an edge in an image.
@@ -136,7 +140,7 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     im = im[roi.bounding_box_slice]
 
     # Run a median filter
-    im_median = ndi.median_filter(im, size=2*edgewidth)
+    im_median = ndi.median_filter(im, size=2 * edgewidth)
 
     # Get the mask in the coordinates of the image cropped to the ROI
     mask = roi.local_mask
@@ -196,7 +200,8 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
                 4 * edgewidth: -4 * edgewidth, 4 * edgewidth: -4 * edgewidth
                 ]
     intensity_high = ufloat(np.mean(im[mask_high]), np.std(im[mask_high]))
-    mask_low = np.logical_not(ndi.binary_dilation(im_thresh, iterations=2 * edgewidth)) & mask
+    mask_low = np.logical_not(
+        ndi.binary_dilation(im_thresh, iterations=2 * edgewidth)) & mask
     intensity_low = ufloat(np.mean(im[mask_low]), np.std(im[mask_low]))
 
     # In order to take profiles across the edge, we need to find out what the normal
@@ -260,7 +265,8 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     # Need to change mask coordinates from y, x to x, y for shapely
     mask_coordinates = np.roll(roi.local_coords, 1, axis=1)
     mask_poly = shapely.geometry.Polygon(mask_coordinates)
-    lines = [shapely.geometry.LineString([(x1[i], y1[i]), (x2[i], y2[i])]) for i in range(len(x))]
+    lines = [shapely.geometry.LineString([(x1[i], y1[i]), (x2[i], y2[i])]) for i in
+             range(len(x))]
     lines = [line for line in lines if mask_poly.contains(line)]
 
     # Find the line profile along each line
@@ -300,10 +306,11 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     shift_registration = LeastSquaresShiftRegistration()
     fd_registered = shift_registration.fit_transform(fd)
     line_profiles_aligned = np.squeeze(fd_registered.data_matrix)
-    
+
     # Test which way the line profiles should be flipped
     flat_length = linelength - edgewidth
-    if np.mean(line_profiles_aligned[:, 0:flat_length]) > np.mean(line_profiles_aligned[:, -flat_length:-1]):
+    if np.mean(line_profiles_aligned[:, 0:flat_length]) > np.mean(
+            line_profiles_aligned[:, -flat_length:-1]):
         line_profiles_aligned = np.flip(line_profiles_aligned, axis=1)
 
     # Average the aligned line profiles, ignoring nan values
@@ -325,7 +332,7 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
         ax[0].axhline(intensity_high.nominal_value, color="b", linestyle="-", alpha=0.5)
         ax[0].axhline(intensity_low.nominal_value, color="b", linestyle="-", alpha=0.5)
         # Set the x limits
-        ax[0].set_xlim(0, len(line_profile_avg)-1)
+        ax[0].set_xlim(0, len(line_profile_avg) - 1)
 
     # Draw an image of the line profiles if ax is provided
     if ax is not None:
@@ -348,4 +355,3 @@ def extract_line_profile(im, edgewidth=5, linelength=10, linewidth=3, roi=None, 
     }
 
     return results
-
