@@ -348,10 +348,16 @@ def extract_line_profile(im,
         ax[1].imshow(np.ma.masked_where(mask_low == 0, mask_low), cmap="cool",
                      alpha=0.1)
 
+    # We use the uncertainties package for uncertainty propagation. While we could
+    # return the results as uncertainties objects, we will convert everything to
+    # normal floats and numpy arrays for easier handling by the user.
     results = {
-        "line_profile": line_profile,
-        "intensity_high": intensity_high,
-        "intensity_low": intensity_low
+        "line_profile_mean": unp.nominal_values(line_profile),
+        "line_profile_std": unp.std_devs(line_profile),
+        "intensity_high_mean": intensity_high.nominal_value,
+        "intensity_high_std": intensity_high.std_dev,
+        "intensity_low_mean": intensity_low.nominal_value,
+        "intensity_low_std": intensity_low.std_dev,
     }
 
     return results
