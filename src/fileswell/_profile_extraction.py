@@ -70,12 +70,9 @@ def order_line_points(x, y):
     return points[opt_order][:, 0], points[opt_order][:, 1]
 
 
-def extract_line_profile(im,
-                         edgewidth=5,
-                         linelength=10,
-                         linewidth=3,
-                         roi=None,
-                         ax=None):
+def extract_line_profile(
+    im, edgewidth=5, linelength=10, linewidth=3, roi=None, ax=None
+):
     """Extract a line profile along an edge in an image.
 
     This function extracts an averaged line profile along an edge in an image.
@@ -140,7 +137,8 @@ def extract_line_profile(im,
     im = im[roi.bounding_box_slice]
 
     # Run a median filter
-    im_median = ndi.median_filter(im, size=2 * edgewidth)
+    # im_median = ndi.median_filter(im, size=2 * edgewidth)
+    im_median = im
 
     # Get the mask in the coordinates of the image cropped to the ROI
     mask = roi.local_mask
@@ -178,7 +176,8 @@ def extract_line_profile(im,
         max_length = 3
     if len(unique) > max_length:
         raise ValueError(
-            "Thresholded image does not consist of two path-connected regions")
+            "Thresholded image does not consist of two path-connected regions"
+        )
 
     # Apply a Canny edge detector to find the edge between the two regions
     edges = skfeat.canny(im_thresh, sigma=edgewidth)
@@ -193,15 +192,15 @@ def extract_line_profile(im,
     # by eroding the thresholded image and taking the mean intensity in the eroded region.
     mask_high = im_thresh.astype(bool) & mask
     mask_high = ndi.binary_erosion(
-        np.pad(mask_high, 4 * edgewidth, constant_values=True),
-        iterations=2 * edgewidth
+        np.pad(mask_high, 4 * edgewidth, constant_values=True), iterations=2 * edgewidth
     )
     mask_high = mask_high[
-                4 * edgewidth: -4 * edgewidth, 4 * edgewidth: -4 * edgewidth
-                ]
+        4 * edgewidth : -4 * edgewidth, 4 * edgewidth : -4 * edgewidth
+    ]
     intensity_high = ufloat(np.mean(im[mask_high]), np.std(im[mask_high]))
-    mask_low = np.logical_not(
-        ndi.binary_dilation(im_thresh, iterations=2 * edgewidth)) & mask
+    mask_low = (
+        np.logical_not(ndi.binary_dilation(im_thresh, iterations=2 * edgewidth)) & mask
+    )
     intensity_low = ufloat(np.mean(im[mask_low]), np.std(im[mask_low]))
 
     # In order to take profiles across the edge, we need to find out what the normal
@@ -235,7 +234,7 @@ def extract_line_profile(im,
     grad_y = dx
 
     # Normalize the gradients
-    grad_norm = np.sqrt(grad_x ** 2 + grad_y ** 2)
+    grad_norm = np.sqrt(grad_x**2 + grad_y**2)
     grad_x = grad_x / grad_norm
     grad_y = grad_y / grad_norm
 
@@ -257,16 +256,18 @@ def extract_line_profile(im,
     # also have a different spacing dx between the points in the line profile. To
     # avoid this, we will add a small offset to the end points of the lines, slightly
     # reducing the overall length of the line profile.
-    x2 = x2 - 1E-5 * grad_x
-    y2 = y2 - 1E-5 * grad_y
+    x2 = x2 - 1e-5 * grad_x
+    y2 = y2 - 1e-5 * grad_y
 
     # We need to reject any lines that are not fully contained within the
     # region-of-interest.
     # Need to change mask coordinates from y, x to x, y for shapely
     mask_coordinates = np.roll(roi.local_coords, 1, axis=1)
     mask_poly = shapely.geometry.Polygon(mask_coordinates)
-    lines = [shapely.geometry.LineString([(x1[i], y1[i]), (x2[i], y2[i])]) for i in
-             range(len(x))]
+    lines = [
+        shapely.geometry.LineString([(x1[i], y1[i]), (x2[i], y2[i])])
+        for i in range(len(x))
+    ]
     lines = [line for line in lines if mask_poly.contains(line)]
 
     # Find the line profile along each line
@@ -276,7 +277,12 @@ def extract_line_profile(im,
             src = (line.coords[0][1], line.coords[0][0])
             dst = (line.coords[1][1], line.coords[1][0])
             line_profile = skmeas.profile_line(
-                im, src, dst, order=3, mode="constant", cval=0,
+                im,
+                src,
+                dst,
+                order=3,
+                mode="constant",
+                cval=0,
                 linewidth=linewidth,
             )
         except ValueError:
@@ -310,7 +316,8 @@ def extract_line_profile(im,
     # Test which way the line profiles should be flipped
     flat_length = linelength - edgewidth
     if np.mean(line_profiles_aligned[:, 0:flat_length]) > np.mean(
-            line_profiles_aligned[:, -flat_length:-1]):
+        line_profiles_aligned[:, -flat_length:-1]
+    ):
         line_profiles_aligned = np.flip(line_profiles_aligned, axis=1)
 
     # Average the aligned line profiles, ignoring nan values
@@ -326,8 +333,13 @@ def extract_line_profile(im,
         ax[0].plot(line_profile_avg, "r-")
         y_err_low = line_profile_avg - line_profile_std
         y_err_high = line_profile_avg + line_profile_std
-        ax[0].fill_between(np.arange(len(line_profile_avg)), y_err_low, y_err_high,
-                           color="r", alpha=0.7)
+        ax[0].fill_between(
+            np.arange(len(line_profile_avg)),
+            y_err_low,
+            y_err_high,
+            color="r",
+            alpha=0.7,
+        )
         # Plot horizontal lines at the two intensity levels
         ax[0].axhline(intensity_high.nominal_value, color="b", linestyle="-", alpha=0.5)
         ax[0].axhline(intensity_low.nominal_value, color="b", linestyle="-", alpha=0.5)
@@ -343,10 +355,12 @@ def extract_line_profile(im,
         for line in lines[0::10]:
             ax[1].plot(*line.xy, "r-")
         # Draw the mask regions
-        ax[1].imshow(np.ma.masked_where(mask_high == 0, mask_high), cmap="cool",
-                     alpha=0.1)
-        ax[1].imshow(np.ma.masked_where(mask_low == 0, mask_low), cmap="cool",
-                     alpha=0.1)
+        ax[1].imshow(
+            np.ma.masked_where(mask_high == 0, mask_high), cmap="cool", alpha=0.1
+        )
+        ax[1].imshow(
+            np.ma.masked_where(mask_low == 0, mask_low), cmap="cool", alpha=0.1
+        )
 
     # We use the uncertainties package for uncertainty propagation. While we could
     # return the results as uncertainties objects, we will convert everything to
