@@ -49,6 +49,9 @@ class ROI(object):
     def local_mask(self):
         return skdraw.polygon2mask(self.local_shape, self.local_coords)
 
+    def global_mask(self, global_shape):
+        return skdraw.polygon2mask(global_shape, self.global_coords)
+
     def __repr__(self):
         return f"ROI(top={self.top}, bottom={self.bottom}, left={self.left}, right={self.right})"
 
