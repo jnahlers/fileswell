@@ -72,7 +72,7 @@ def order_line_points(x, y):
 
 def extract_line_profile(
     im, edgewidth=5, linelength=10, linewidth=3, roi=None, ax=None,
-    lps=False, sh=False):
+    return_profiles=False, return_shifts=False):
     """Extract a line profile along an edge in an image.
 
     This function extracts an averaged line profile along an edge in an image.
@@ -115,9 +115,9 @@ def extract_line_profile(
         to show an image of the section of the image containing the edge and the line,
         with a sample of line profiles drawn on top. The second axis will be used to
         plot the line profiles. If None, no plots will be made.
-    lps : bool, optional (default = False)
+    return_profiles : bool, optional (default = False)
         return the line profiles (line_profiles) within the results
-    sh : bool, optional (default = False)
+    return_shifts : bool, optional (default = False)
         return the profile shifts (shift_registration.deltas_) within the results
 
     Returns
@@ -377,7 +377,7 @@ def extract_line_profile(
         "intensity_low_mean": intensity_low.nominal_value,
         "intensity_low_std": intensity_low.std_dev,
     }
-    if lps: results["line_profiles"] = line_profiles
-    if sh: results["shifts"] = shift_registration.deltas_
+    if return_profiles: results["line_profiles"] = line_profiles
+    if return_shifts: results["shifts"] = shift_registration.deltas_
 
     return results
