@@ -71,8 +71,17 @@ def order_line_points(x, y):
 
 
 def extract_line_profile(
-    im, edgewidth=5, linelength=10, linewidth=3, roi=None, ax=None,
-    return_profiles=False, return_shifts=False):
+    im,
+    edgewidth=5,
+    linelength=10,
+    linewidth=3,
+    roi=None,
+    smoothing=2,
+    thresh_method="otsu",
+    ax=None,
+    return_profiles=False,
+    return_shifts=False,
+):
     """Extract a line profile along an edge in an image.
 
     This function extracts an averaged line profile along an edge in an image.
@@ -110,6 +119,16 @@ def extract_line_profile(
     roi : ROI, optional (default=None)
         The region-of-interest containing the edge and the two regions surrounding it.
         If None, the ROI is the whole image.
+    smoothing : int, optional (default=2)
+        Before thresholding, the image is smoothed using a median filter with size
+        smoothing * edgewidth. The default of 2 should be sufficient for most images.
+    thresh_method : str, optional (default='otsu')
+        The method used to binary threshold the image. Supported methods are:
+        - 'otsu': Otsu's method (default)
+        - 'triangle': Triangle method
+        - 'minimum': Minimum method
+        - 'isodata': ISODATA method
+        - 'li': Li’s iterative Minimum Cross Entropy method
     ax : array of matplotlib axes, optional (default=None)
         Needs to be a list or array of two matplotlib axes. The first axis will be used
         to show an image of the section of the image containing the edge and the line,
@@ -141,8 +160,7 @@ def extract_line_profile(
     im = im[roi.bounding_box_slice]
 
     # Run a median filter
-    # im_median = ndi.median_filter(im, size=2 * edgewidth)
-    im_median = im
+    im_median = ndi.median_filter(im, size=smoothing * edgewidth)
 
     # Get the mask in the coordinates of the image cropped to the ROI
     mask = roi.local_mask
@@ -158,8 +176,22 @@ def extract_line_profile(
     # Make the masked image
     im_masked = np.ma.masked_where(~mask, im_norm)
 
-    # Threshold using Otsu's method
-    thresh_value = skfilt.threshold_otsu(im_masked)
+    # Threshold
+    if thresh_method == "otsu":
+        thresh_value = skfilt.threshold_otsu(im_masked)
+    elif thresh_method == "triangle":
+        thresh_value = skfilt.threshold_triangle(im_masked)
+    elif thresh_method == "minimum":
+        thresh_value = skfilt.threshold_minimum(im_masked)
+    elif thresh_method == "isodata":
+        thresh_value = skfilt.threshold_isodata(im_masked)
+    elif thresh_method == "li":
+        thresh_value = skfilt.threshold_li(im_masked)
+    else:
+        raise ValueError(
+            "thresh_method should be one of 'otsu', 'triangle', 'minimum', "
+            "'isodata', or 'li'."
+        )
     im_thresh = im_masked > thresh_value
 
     # Remove small holes that may have been caused by noise
@@ -377,7 +409,9 @@ def extract_line_profile(
         "intensity_low_mean": intensity_low.nominal_value,
         "intensity_low_std": intensity_low.std_dev,
     }
-    if return_profiles: results["line_profiles"] = line_profiles
-    if return_shifts: results["shifts"] = shift_registration.deltas_
+    if return_profiles:
+        results["line_profiles"] = line_profiles
+    if return_shifts:
+        results["shifts"] = shift_registration.deltas_
 
     return results
