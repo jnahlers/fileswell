@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 
 from pathlib import Path
@@ -12,6 +14,7 @@ from natsort import natsorted
 
 class ROI(object):
     """A region-of-interest (ROI) defined by a set of coordinates."""
+
     def __init__(self, coords):
         """Constructs a ROI
 
@@ -39,7 +42,7 @@ class ROI(object):
 
     @property
     def bounding_box_slice(self):
-        return np.s_[self.top:self.bottom, self.left:self.right]
+        return np.s_[self.top : self.bottom, self.left : self.right]
 
     @property
     def local_shape(self):
@@ -82,15 +85,15 @@ def load_imagej_rois(path: str | os.PathLike) -> list[ROI]:
     """
     path = Path(path)
     rois = []
-    if path.name.endswith('.zip'):
+    if path.name.endswith(".zip"):
         with ZipFile(path, "r") as zf:
             with tempfile.TemporaryDirectory() as tempdirname:
                 tempdir = Path(tempdirname)
                 zf.extractall(tempdir)
                 for file in natsorted(tempdir.iterdir()):
-                    if file.name.endswith('.roi'):
+                    if file.name.endswith(".roi"):
                         rois.append(ROI.from_imagej_roi(ImagejRoi.fromfile(file)))
-    elif path.name.endswith('.roi'):
+    elif path.name.endswith(".roi"):
         rois.append(ROI.from_imagej_roi(ImagejRoi.fromfile(path)))
 
     return rois
