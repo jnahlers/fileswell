@@ -19,13 +19,6 @@ running the following command in the root directory of the repository:
 pip install .
 ```
 
-It is recommended to install the package as editable, so that you can make changes to
-the source code if needed:
-
-```bash
-pip install -e .
-```
-
 ## Usage
 
 The package provides two functions: `load_imagej_rois` and `extract_line_profile`.
