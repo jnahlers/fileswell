@@ -134,10 +134,10 @@ def extract_line_profile(
         to show an image of the section of the image containing the edge and the line,
         with a sample of line profiles drawn on top. The second axis will be used to
         plot the line profiles. If None, no plots will be made.
-    return_profiles : bool, optional (default = False)
-        return the line profiles (line_profiles) within the results
-    return_shifts : bool, optional (default = False)
-        return the profile shifts (shift_registration.deltas_) within the results
+    return_profiles : bool, optional (default=False)
+        Return the line profiles within the results.
+    return_shifts : bool, optional (default=False)
+        Return the profile shifts within the results.
 
     Returns
     -------
