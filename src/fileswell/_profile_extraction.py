@@ -143,12 +143,17 @@ def extract_line_profile(
     -------
     dict
         A dictionary containing the following:
-        - line_profile : array
-            The line profile along the edge, as a numpy array of uncertainties.
-        - intensity_high : ufloat
-            The mean intensity (and std) in the high intensity region.
-        - intensity_low : ufloat
-            The mean intensity (and std) in the low intensity region.
+        - line_profile_mean: The mean line profile, averaged over all line profiles.
+        - line_profile_std: The standard deviation of the line profile, averaged over
+            all line profiles.
+        - intensity_high_mean: The mean intensity of the high intensity region.
+        - intensity_high_std: The standard deviation of the intensity of the high
+            intensity region.
+        - intensity_low_mean: The mean intensity of the low intensity region.
+        - intensity_low_std: The standard deviation of the intensity of the low
+            intensity region.
+        - line_profiles: The individual line profiles, if return_profiles is True.
+        - shifts: The shifts of the line profiles, if return_shifts is True.
     """
 
     # If no region-of-interest is provided, the ROI is the whole image
