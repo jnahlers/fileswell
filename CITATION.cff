@@ -64,8 +64,10 @@ preferred-citation:
   - family-names: "Morgan"
     given-names: "Kaye"
     orcid: "https://orcid.org/0000-0001-6997-7977"
-  doi: "10.48550/arXiv.2505.14075"
+  doi: "10.1038/s41598-025-14956-3"
   title: "High-energy X-ray phase-contrast CT of an adult human chest phantom"
-  status: "preprint"
+  journal: "Scientific Reports"
+  volume: 15
+  start: 29314
   year: 2025
 
